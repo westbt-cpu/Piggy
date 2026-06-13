@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Piggy</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #FFFFFF;
+    --near-black: #111827;
+    --blue: #1A6BF0;
+    --blue-light: #EBF2FF;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --green: #10B981;
+    --green-light: #ECFDF5;
+    --red: #EF4444;
+    --red-light: #FEF2F2;
+    --amber: #F59E0B;
+    --font: 'Calibri', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: var(--gray-50);
+    color: var(--near-black);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  #app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Screen system ── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    overflow: hidden;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+    z-index: 1;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; }
+
+  /* ── Scroll containers ── */
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--gray-100);
+    flex-shrink: 0;
+    background: var(--white);
+  }
+  .header-title { font-size: 18px; font-weight: 700; }
+  .back-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--blue);
+    padding: 4px 8px 4px 0;
+    line-height: 1;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: var(--font);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--blue); color: var(--white); }
+  .btn-secondary { background: var(--gray-100); color: var(--near-black); }
+  .btn-ghost { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+  .btn-full { width: 100%; }
+  .btn-sm { padding: 8px 16px; font-size: 14px; border-radius: var(--radius-sm); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── FAB ── */
+  .fab {
+    position: absolute;
+    bottom: 24px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(26,107,240,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: transform 0.1s;
+    line-height: 1;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* ── Inputs ── */
+  .input-group { margin-bottom: 16px; }
+  .input-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 17px;
+    color: var(--near-black);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .input:focus { border-color: var(--blue); }
+  .input::placeholder { color: var(--gray-300); }
+
+  select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Jar Balances Bar ── */
+  .jars-bar {
+    display: flex;
+    gap: 0;
+    background: var(--near-black);
+    padding: 16px 20px;
+    flex-shrink: 0;
+  }
+  .jar-item {
+    flex: 1;
+    text-align: center;
+  }
+  .jar-item:not(:last-child) {
+    border-right: 1px solid rgba(255,255,255,0.1);
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .jar-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 4px;
+  }
+  .jar-amount {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.5px;
+  }
+  .jar-amount.save { color: var(--blue); }
+  .jar-amount.spend { color: #34D399; }
+  .jar-amount.give { color: #FB923C; }
+
+  /* ── HOME SCREEN ── */
+  #screen-home {
+    background: var(--white);
+  }
+  .home-header {
+    padding: 48px 24px 32px;
+    text-align: center;
+  }
+  .home-logo {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--near-black);
+    margin-bottom: 4px;
+  }
+  .home-tagline {
+    font-size: 14px;
+    color: var(--gray-400);
+  }
+  .kids-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 24px;
+  }
+  .kid-avatar-card {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: 20px;
+    padding: 28px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .kid-avatar-card:active { transform: scale(0.98); }
+  .kid-avatar-card.pressing {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .kid-emoji {
+    font-size: 52px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .kid-info { flex: 1; }
+  .kid-name { font-size: 24px; font-weight: 700; color: var(--near-black); }
+  .kid-sub { font-size: 14px; color: var(--gray-400); margin-top: 2px; }
+  .kid-arrow { font-size: 20px; color: var(--gray-300); }
+
+  .long-press-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--blue);
+    width: 0%;
+    transition: none;
+    border-radius: 0 0 20px 20px;
+  }
+  .long-press-hint {
+    text-align: center;
+    padding: 24px;
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+
+  /* ── KID VIEW ── */
+  #screen-kid .scroll-area {
+    padding: 12px 0 80px;
+  }
+
+  /* ── Wish Cards ── */
+  .wish-list { padding: 0 16px; }
+  .wish-card-wrap {
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+  .wish-card-bg-right {
+    position: absolute;
+    inset: 0;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    padding-left: 24px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .wish-card-bg-left {
+    position: absolute;
+    inset: 0;
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 24px;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .wish-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    position: relative;
+    touch-action: pan-y;
+    will-change: transform;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.15s;
+  }
+  .wish-card.age-fresh { opacity: 1; }
+  .wish-card.age-mid { opacity: 0.75; }
+  .wish-card.age-old { opacity: 0.55; }
+
+  .wish-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .wish-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--near-black);
+    flex: 1;
+    padding-right: 8px;
+  }
+  .wish-cost {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--near-black);
+    white-space: nowrap;
+  }
+  .wish-cost.tap-to-add {
+    color: var(--gray-300);
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+
+  .wish-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .wish-age-badge {
+    font-size: 12px;
+    color: var(--gray-400);
+    background: var(--gray-100);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .wish-weeks {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .wish-weeks.funded { color: var(--green); }
+  .wish-weeks.not-funded { color: var(--blue); }
+  .wish-still-want {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-style: italic;
+  }
+
+  .wish-lock {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wish-lock-text {
+    font-size: 12px;
+    color: var(--gray-400);
+  }
+  .wish-lock-bar-wrap {
+    flex: 1;
+    height: 3px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .wish-lock-bar {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .empty-wishes {
+    text-align: center;
+    padding: 48px 32px;
+    color: var(--gray-400);
+  }
+  .empty-wishes-emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-wishes-text { font-size: 16px; font-weight: 500; }
+  .empty-wishes-sub { font-size: 14px; margin-top: 6px; }
+
+  /* ── ADD WISH SHEET ── */
+  .bottom-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .bottom-sheet-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .bottom-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 0 20px 32px;
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+  .sheet-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 0 20px 40px;
+    width: 100%;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  /* ── ONBOARDING ── */
+  #screen-onboard {
+    padding: 0;
+  }
+  .onboard-scroll { padding: 32px 24px 40px; }
+  .onboard-emoji { font-size: 56px; text-align: center; margin-bottom: 20px; }
+  .onboard-title { font-size: 26px; font-weight: 800; text-align: center; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .onboard-sub { font-size: 15px; color: var(--gray-500); text-align: center; margin-bottom: 32px; }
+
+  .split-inputs {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .split-inputs .input-group { flex: 1; margin-bottom: 0; }
+  .split-total {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin-top: 8px;
+    text-align: right;
+  }
+  .split-total.error { color: var(--red); font-weight: 600; }
+
+  /* ── PARENT MODE ── */
+  #screen-parent {
+    background: var(--near-black);
+    color: var(--white);
+  }
+  .parent-header {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .parent-header-title { font-size: 16px; font-weight: 700; color: var(--white); opacity: 0.6; text-transform: uppercase; letter-spacing: 0.8px; }
+  .parent-close {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: var(--white);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .parent-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .parent-tab {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    border: none;
+    background: none;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+    font-family: var(--font);
+  }
+  .parent-tab.active {
+    color: var(--white);
+    border-bottom-color: var(--blue);
+  }
+
+  .parent-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  .parent-kid-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .parent-kid-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .parent-kid-btn.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+  }
+
+  .parent-jars {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .parent-jar {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .parent-jar-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  .parent-jar-amount {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .update-form {
+    background: rgba(255,255,255,0.05);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .update-form .input-label { color: rgba(255,255,255,0.5); }
+  .update-form .input {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+    color: var(--white);
+  }
+  .update-form .input::placeholder { color: rgba(255,255,255,0.25); }
+  .update-form .input:focus { border-color: var(--blue); }
+  .update-form select.input option { background: #1F2937; color: var(--white); }
+
+  /* ── LEDGER ── */
+  .ledger-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .ledger-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .ledger-info { flex: 1; }
+  .ledger-reason { font-size: 14px; font-weight: 600; color: var(--white); }
+  .ledger-meta { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .ledger-amount {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .ledger-amount.pos { color: #34D399; }
+  .ledger-amount.neg { color: #F87171; }
+
+  /* ── SPARKLINE ── */
+  .sparkline-wrap {
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .sparkline-label { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .sparkline-canvas { width: 100%; height: 60px; }
+
+  /* ── SHARE WISHLIST ── */
+  .share-filter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+  }
+
+  .share-wish-item {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .share-wish-name { font-size: 15px; font-weight: 600; color: var(--white); }
+  .share-wish-meta { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  /* ── DETAIL VIEW ── */
+  #screen-detail .scroll-area {
+    padding: 20px;
+    padding-bottom: 40px;
+  }
+  .detail-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .detail-added {
+    font-size: 14px;
+    color: var(--gray-400);
+    margin-bottom: 24px;
+  }
+
+  .detail-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .detail-stat-label { font-size: 15px; color: var(--gray-500); }
+  .detail-stat-value { font-size: 15px; font-weight: 600; color: var(--near-black); }
+
+  .detail-edit-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .detail-quiet {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-100);
+    font-size: 14px;
+    color: var(--gray-300);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .detail-danger {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn-danger { background: var(--red-light); color: var(--red); }
+
+  /* ── GOT IT FLOW ── */
+  .got-it-choice {
+    background: var(--white);
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .got-it-choice:active { transform: scale(0.98); }
+  .got-it-choice.selected {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .got-it-choice-title { font-size: 17px; font-weight: 600; }
+  .got-it-choice-sub { font-size: 13px; color: var(--gray-400); margin-top: 3px; }
+  .got-it-choice.locked .got-it-choice-title { color: var(--gray-400); }
+
+  .confirmation-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .confirmation-emoji { font-size: 64px; margin-bottom: 20px; }
+  .confirmation-msg { font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+  .confirmation-sub { font-size: 16px; color: var(--gray-400); }
+
+  /* ── SKIP FLOW ── */
+  .skip-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .skip-freed { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+  .skip-closer { font-size: 15px; color: var(--blue); margin-bottom: 24px; font-weight: 500; }
+  .skip-housel { font-size: 16px; font-style: italic; color: var(--gray-500); margin-bottom: 32px; }
+
+  /* ── RE-ENTRY NUDGE ── */
+  #screen-nudge {
+    background: var(--white);
+  }
+  .nudge-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 28px;
+    text-align: center;
+  }
+  .nudge-emoji { font-size: 56px; margin-bottom: 24px; }
+  .nudge-title { font-size: 22px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+  .nudge-sub { font-size: 16px; color: var(--gray-500); margin-bottom: 40px; line-height: 1.5; }
+
+  /* ── GIVE JAR NUDGE ── */
+  .give-nudge {
+    margin: 12px 16px;
+    background: #FFF7ED;
+    border: 1.5px solid #FED7AA;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .give-nudge-emoji { font-size: 24px; }
+  .give-nudge-text { flex: 1; font-size: 14px; font-weight: 500; color: #92400E; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--near-black);
+    color: var(--white);
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── PROGRESS / LOCK ── */
+  .lock-icon { font-size: 12px; }
+
+  /* ── Utilities ── */
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .gap-12 { gap: 12px; }
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .text-center { text-align: center; }
+  .text-sm { font-size: 13px; }
+  .text-gray { color: var(--gray-400); }
+  .font-600 { font-weight: 600; }
+  .p-16 { padding: 16px; }
+
+  /* ── Safe area ── */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .fab { bottom: calc(24px + env(safe-area-inset-bottom)); }
+    .bottom-sheet { padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════════ HOME SCREEN ═══════════════ -->
+  <div id="screen-home" class="screen">
+    <div class="home-header">
+      <div class="home-logo">🐷 Piggy</div>
+      <div class="home-tagline">Your money, your choices</div>
+    </div>
+    <div class="kids-grid" id="kids-grid"></div>
+    <div class="long-press-hint">Hold either name to open parent view</div>
+  </div>
+
+  <!-- ═══════════════ ONBOARDING ═══════════════ -->
+  <div id="screen-onboard" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('home')">‹</button>
+      <div class="header-title" id="onboard-header-title">New Kid</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="scroll-area onboard-scroll">
+      <div class="onboard-emoji" id="onboard-emoji-display">🌟</div>
+      <div class="onboard-title" id="onboard-title-display">Set up a new kid</div>
+      <div class="onboard-sub">Takes 30 seconds. You can change everything later.</div>
+
+      <div class="input-group">
+        <label class="input-label">Name</label>
+        <input type="text" class="input" id="onboard-name" placeholder="e.g. Evie" maxlength="20">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Emoji</label>
+        <input type="text" class="input" id="onboard-emoji" placeholder="e.g. 🦋" maxlength="4">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Age</label>
+        <input type="number" class="input" id="onboard-age" placeholder="e.g. 8" min="1" max="18">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Weekly allowance ($)</label>
+        <input type="number" class="input" id="onboard-allowance" placeholder="e.g. 5.00" min="0" step="0.01">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Split percentages (must total 100%)</label>
+        <div class="split-inputs">
+          <div class="input-group">
+            <label class="input-label" style="color:#1A6BF0">Save %</label>
+            <input type="number" class="input" id="onboard-save-pct" value="50" min="0" max="100">
+          </div>
+          <div class="input-group">
+            <label class="input-label" style="color:#34D399">Spend %</label>
+            <input type="number" class="input" id="onboard-spend-pct" value="40" min="0" max="100">
+          </div>
+          <div class="input-group">
+            <label class="input-label" style="color:#FB923C">Give %</label>
+            <input type="number" class="input" id="onboard-give-pct" value="10" min="0" max="100">
+          </div>
+        </div>
+        <div class="split-total" id="split-total">Total: 100%</div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Give jar nudge threshold ($)</label>
+        <input type="number" class="input" id="onboard-give-threshold" value="10" min="1" step="1">
+      </div>
+
+      <button class="btn btn-primary btn-full mt-16" id="onboard-save-btn" onclick="saveKid()">Save & Continue</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ RE-ENTRY NUDGE ═══════════════ -->
+  <div id="screen-nudge" class="screen">
+    <div class="nudge-inner">
+      <div class="nudge-emoji">🌱</div>
+      <div class="nudge-title" id="nudge-title">Welcome back</div>
+      <div class="nudge-sub" id="nudge-sub">You've been away for a bit.</div>
+      <button class="btn btn-primary" style="min-width:200px" onclick="dismissNudge()">Keep going</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ KID VIEW ═══════════════ -->
+  <div id="screen-kid" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('home')">‹</button>
+      <div class="header-title" id="kid-view-name">Kid</div>
+      <div style="width:40px"></div>
+    </div>
+
+    <div class="jars-bar">
+      <div class="jar-item">
+        <div class="jar-label">Save</div>
+        <div class="jar-amount save" id="kid-save-bal">$0</div>
+      </div>
+      <div class="jar-item">
+        <div class="jar-label">Spend</div>
+        <div class="jar-amount spend" id="kid-spend-bal">$0</div>
+      </div>
+      <div class="jar-item">
+        <div class="jar-label">Give</div>
+        <div class="jar-amount give" id="kid-give-bal">$0</div>
+      </div>
+    </div>
+
+    <div class="scroll-area" id="kid-scroll-area">
+      <div id="give-nudge-banner" style="display:none"></div>
+      <div class="wish-list" id="wish-list"></div>
+      <div class="empty-wishes" id="wish-empty" style="display:none">
+        <div class="empty-wishes-emoji">✨</div>
+        <div class="empty-wishes-text">No wishes yet</div>
+        <div class="empty-wishes-sub">Tap + to add your first wish</div>
+      </div>
+    </div>
+
+    <button class="fab" id="fab-add-wish" onclick="openAddWish()">+</button>
+
+    <!-- Add Wish Sheet -->
+    <div class="bottom-sheet-overlay" id="add-wish-overlay" onclick="closeAddWish()"></div>
+    <div class="bottom-sheet" id="add-wish-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add a wish</div>
+      <div class="input-group">
+        <label class="input-label">What do you want?</label>
+        <input type="text" class="input" id="wish-name-input" placeholder="e.g. LEGO Technic Set" maxlength="60" autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label class="input-label">How much does it cost? (optional)</label>
+        <input type="number" class="input" id="wish-cost-input" placeholder="e.g. 24.99" min="0" step="0.01">
+      </div>
+      <button class="btn btn-primary btn-full mt-8" onclick="saveWish()">Save wish</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ WISH DETAIL ═══════════════ -->
+  <div id="screen-detail" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('kid')">‹</button>
+      <div class="header-title">Wish detail</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="scroll-area" id="detail-scroll">
+      <div style="padding:20px 20px 40px">
+        <div class="detail-name" id="detail-name"></div>
+        <div class="detail-added" id="detail-added"></div>
+
+        <div class="detail-stat">
+          <span class="detail-stat-label">Cost</span>
+          <span class="detail-stat-value" id="detail-cost"></span>
+        </div>
+        <div class="detail-stat">
+          <span class="detail-stat-label">Age on list</span>
+          <span class="detail-stat-value" id="detail-age"></span>
+        </div>
+        <div class="detail-stat">
+          <span class="detail-stat-label">Save balance</span>
+          <span class="detail-stat-value" id="detail-save-bal"></span>
+        </div>
+        <div class="detail-stat">
+          <span class="detail-stat-label">Time to save</span>
+          <span class="detail-stat-value" id="detail-weeks-away"></span>
+        </div>
+
+        <div class="detail-edit-row mt-24">
+          <div class="input-group" style="flex:1;margin-bottom:0">
+            <label class="input-label">Edit name</label>
+            <input type="text" class="input" id="detail-name-input" maxlength="60">
+          </div>
+        </div>
+        <div class="detail-edit-row">
+          <div class="input-group" style="flex:1;margin-bottom:0">
+            <label class="input-label">Edit cost</label>
+            <input type="number" class="input" id="detail-cost-input" min="0" step="0.01" placeholder="optional">
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-full mt-8" onclick="saveDetailEdits()">Save changes</button>
+
+        <div class="detail-quiet">Is this a thing or an experience?</div>
+
+        <div class="detail-danger mt-24">
+          <button class="btn btn-danger btn-sm" style="flex:1" onclick="archiveWish()">Remove wish</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ GOT IT FLOW ═══════════════ -->
+  <div id="screen-gotit" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('kid')">‹</button>
+      <div class="header-title">Got it!</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="scroll-area" id="gotit-content">
+      <div style="padding:20px">
+        <div id="gotit-wish-name" style="font-size:20px;font-weight:700;margin-bottom:4px"></div>
+        <div id="gotit-wish-cost" style="font-size:15px;color:var(--gray-400);margin-bottom:24px"></div>
+
+        <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-500);margin-bottom:12px">How did you get it?</div>
+
+        <div class="got-it-choice" id="choice-own-money" onclick="selectGotItChoice('own')">
+          <div class="got-it-choice-title" id="own-money-title">My own money</div>
+          <div class="got-it-choice-sub" id="own-money-sub">Deducts from your save jar</div>
+          <div id="own-money-lock" style="display:none;margin-top:8px">
+            <div class="wish-lock">
+              <span class="lock-icon">🔒</span>
+              <span class="wish-lock-text" id="own-money-lock-text"></span>
+              <div class="wish-lock-bar-wrap">
+                <div class="wish-lock-bar" id="own-money-lock-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="got-it-choice" id="choice-gift" onclick="selectGotItChoice('gift')">
+          <div class="got-it-choice-title">Gift</div>
+          <div class="got-it-choice-sub">Balance stays the same</div>
+        </div>
+
+        <div id="gift-from-wrap" style="display:none;margin-top:12px">
+          <div class="input-group">
+            <label class="input-label">Who gave it? (optional)</label>
+            <input type="text" class="input" id="gift-from-input" placeholder="e.g. Grandma" maxlength="40">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full mt-24" id="gotit-confirm-btn" onclick="confirmGotIt()" disabled>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SKIP FLOW ═══════════════ -->
+  <div id="screen-skip" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showScreen('kid')">‹</button>
+      <div class="header-title">Skipped it</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="skip-screen">
+      <div class="skip-freed" id="skip-freed">You skipped it.</div>
+      <div class="skip-closer" id="skip-closer" style="display:none"></div>
+      <div class="skip-housel">"Every no is a yes to something better."</div>
+      <button class="btn btn-primary mt-24" style="min-width:200px" onclick="confirmSkip()">Got it</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CONFIRMATION SCREEN ═══════════════ -->
+  <div id="screen-confirm" class="screen">
+    <div class="confirmation-screen">
+      <div class="confirmation-emoji" id="confirm-emoji">🎉</div>
+      <div class="confirmation-msg" id="confirm-msg">Nice work!</div>
+      <div class="confirmation-sub" id="confirm-sub"></div>
+      <button class="btn btn-primary mt-24" style="min-width:200px" onclick="showScreen('kid')">Back to wishes</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════ PARENT MODE ═══════════════ -->
+  <div id="screen-parent" class="screen">
+    <div class="parent-header">
+      <div class="parent-header-title">Parent View</div>
+      <button class="parent-close" onclick="showScreen('home')">✕</button>
+    </div>
+    <div class="parent-tabs">
+      <button class="parent-tab active" onclick="setParentTab('update')">Update</button>
+      <button class="parent-tab" onclick="setParentTab('history')">History</button>
+      <button class="parent-tab" onclick="setParentTab('trend')">Trend</button>
+      <button class="parent-tab" onclick="setParentTab('wishes')">Wish Lists</button>
+    </div>
+    <div class="parent-content scroll-area" id="parent-content"></div>
+  </div>
+
+  <!-- ═══════════════ TOAST ═══════════════ -->
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'piggy_v1';
+const GIVE_DEFAULT_THRESHOLD = 10;
+const REENTRY_DAYS = 14;
+const LOCK_DAYS = 7;
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { kids: [], lastOpen: null };
+  } catch(e) {
+    return { kids: [], lastOpen: null };
+  }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let db = loadData();
+let currentKidId = null;
+let currentWishId = null;
+let parentTab = 'update';
+let parentKidId = null;
+let gotItChoice = null;
+let pendingWishId = null;
+let nudgeKidId = null;
+let addWishOpen = false;
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+
+function fmt(n) {
+  return '$' + Math.abs(n).toFixed(2);
+}
+
+function fmtSigned(n) {
+  return (n >= 0 ? '+' : '-') + '$' + Math.abs(n).toFixed(2);
+}
+
+function daysSince(dateStr) {
+  const ms = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(ms / 86400000);
+}
+
+function ageBadge(days) {
+  if (days < 7) return days + (days === 1 ? ' day' : ' days');
+  if (days < 30) return Math.floor(days/7) + (Math.floor(days/7) === 1 ? ' week' : ' weeks');
+  return Math.floor(days/30) + (Math.floor(days/30) === 1 ? ' month' : ' months');
+}
+
+function weeksAway(cost, saveBal, allowance, savePct) {
+  if (!cost || cost <= 0) return null;
+  if (saveBal >= cost) return 0;
+  const weeklyAdd = (allowance || 0) * (savePct || 50) / 100;
+  if (!weeklyAdd) return null;
+  return Math.ceil((cost - saveBal) / weeklyAdd);
+}
+
+function getKid(id) {
+  return db.kids.find(k => k.id === id);
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function activeWishes(kid) {
+  return (kid.wishes || []).filter(w => w.status === 'active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function takeSnapshot(kid) {
+  const today = new Date().toISOString().slice(0,10);
+  if (!kid.snapshots) kid.snapshots = [];
+  const last = kid.snapshots[kid.snapshots.length - 1];
+  if (last && last.date === today) {
+    last.save = kid.jars.save;
+    last.spend = kid.jars.spend;
+    last.give = kid.jars.give;
+  } else {
+    kid.snapshots.push({ date: today, save: kid.jars.save, spend: kid.jars.spend, give: kid.jars.give });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// SCREEN ROUTING
+// ══════════════════════════════════════════════════════
+
+function showScreen(name, opts) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+
+  if (name === 'home') renderHome();
+  if (name === 'kid') renderKidView();
+  if (name === 'parent') renderParent();
+  if (name === 'detail') renderDetail();
+  if (name === 'gotit') renderGotIt();
+  if (name === 'skip') renderSkip();
+}
+
+// ══════════════════════════════════════════════════════
+// HOME SCREEN
+// ══════════════════════════════════════════════════════
+
+function renderHome() {
+  const grid = document.getElementById('kids-grid');
+  grid.innerHTML = '';
+
+  if (db.kids.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align:center;padding:20px 0 8px">
+        <div style="font-size:14px;color:var(--gray-400);margin-bottom:20px">No kids set up yet</div>
+        <button class="btn btn-primary" onclick="openOnboard(null)">Add a kid</button>
+      </div>`;
+    return;
+  }
+
+  db.kids.forEach(kid => {
+    const wishes = activeWishes(kid);
+    const card = document.createElement('div');
+    card.className = 'kid-avatar-card';
+    card.innerHTML = `
+      <div class="kid-emoji">${kid.emoji || '🌟'}</div>
+      <div class="kid-info">
+        <div class="kid-name">${kid.name}</div>
+        <div class="kid-sub">${wishes.length} wish${wishes.length !== 1 ? 'es' : ''}</div>
+      </div>
+      <div class="kid-arrow">›</div>
+      <div class="long-press-bar" id="lpbar-${kid.id}"></div>
+    `;
+    setupLongPress(card, kid.id);
+    grid.appendChild(card);
+  });
+
+  // Add kid button
+  const addBtn = document.createElement('div');
+  addBtn.style.textAlign = 'center';
+  addBtn.style.padding = '4px 0 0';
+  addBtn.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="openOnboard(null)">+ Add another kid</button>`;
+  grid.appendChild(addBtn);
+}
+
+function setupLongPress(card, kidId) {
+  let timer = null;
+  let progress = null;
+  let progBar = null;
+  let startTime = null;
+  const DURATION = 1500;
+
+  function start(e) {
+    e.preventDefault();
+    card.classList.add('pressing');
+    startTime = Date.now();
+    progBar = card.querySelector('.long-press-bar');
+    if (progBar) progBar.style.width = '0%';
+
+    function tick() {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min((elapsed / DURATION) * 100, 100);
+      if (progBar) progBar.style.width = pct + '%';
+      if (elapsed >= DURATION) {
+        cancel();
+        card.classList.remove('pressing');
+        enterParentMode();
+      } else {
+        timer = requestAnimationFrame(tick);
+      }
+    }
+    timer = requestAnimationFrame(tick);
+  }
+
+  function cancel() {
+    cancelAnimationFrame(timer);
+    timer = null;
+    card.classList.remove('pressing');
+    if (progBar) progBar.style.width = '0%';
+  }
+
+  card.addEventListener('mousedown', start);
+  card.addEventListener('touchstart', start, { passive: false });
+  card.addEventListener('mouseup', e => {
+    if (timer !== null) { cancel(); enterKidView(kidId); }
+  });
+  card.addEventListener('touchend', e => {
+    if (timer !== null) { cancel(); enterKidView(kidId); }
+  });
+  card.addEventListener('mouseleave', cancel);
+  card.addEventListener('touchcancel', cancel);
+}
+
+function enterKidView(kidId) {
+  currentKidId = kidId;
+  const kid = getKid(kidId);
+  if (!kid) return;
+
+  // Re-entry nudge check
+  const lastOpen = db.lastOpenByKid && db.lastOpenByKid[kidId];
+  if (lastOpen && daysSince(lastOpen) >= REENTRY_DAYS) {
+    showNudge(kidId);
+    return;
+  }
+  recordOpen(kidId);
+  showScreen('kid');
+}
+
+function recordOpen(kidId) {
+  if (!db.lastOpenByKid) db.lastOpenByKid = {};
+  db.lastOpenByKid[kidId] = new Date().toISOString();
+  saveData(db);
+}
+
+function showNudge(kidId) {
+  nudgeKidId = kidId;
+  const kid = getKid(kidId);
+  const wishes = activeWishes(kid);
+  const oldest = wishes.sort((a,b) => new Date(a.addedAt) - new Date(b.addedAt))[0];
+  const days = oldest ? daysSince(oldest.addedAt) : 0;
+
+  document.getElementById('nudge-title').textContent =
+    `You've got ${wishes.length} wish${wishes.length !== 1 ? 'es' : ''}.`;
+  document.getElementById('nudge-sub').textContent =
+    oldest
+      ? `The oldest has been on your list for ${ageBadge(days)}. Still want it?`
+      : `Welcome back, ${kid.name}!`;
+
+  showScreen('nudge');
+}
+
+function dismissNudge() {
+  recordOpen(nudgeKidId);
+  currentKidId = nudgeKidId;
+  showScreen('kid');
+}
+
+function enterParentMode() {
+  parentKidId = db.kids[0]?.id || null;
+  showScreen('parent');
+}
+
+// ══════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════
+
+function openOnboard(kidId) {
+  const kid = kidId ? getKid(kidId) : null;
+  const isEdit = !!kid;
+
+  document.getElementById('onboard-header-title').textContent = isEdit ? 'Edit kid' : 'New kid';
+  document.getElementById('onboard-name').value = kid?.name || '';
+  document.getElementById('onboard-emoji').value = kid?.emoji || '';
+  document.getElementById('onboard-age').value = kid?.age || '';
+  document.getElementById('onboard-allowance').value = kid?.allowance || '';
+  document.getElementById('onboard-save-pct').value = kid?.savePct ?? 50;
+  document.getElementById('onboard-spend-pct').value = kid?.spendPct ?? 40;
+  document.getElementById('onboard-give-pct').value = kid?.givePct ?? 10;
+  document.getElementById('onboard-give-threshold').value = kid?.giveThreshold ?? 10;
+  document.getElementById('onboard-emoji-display').textContent = kid?.emoji || '🌟';
+  document.getElementById('onboard-title-display').textContent = isEdit ? `Editing ${kid.name}` : 'Set up a new kid';
+
+  document.getElementById('onboard-name')._editId = kidId;
+  updateSplitTotal();
+  showScreen('onboard');
+}
+
+function updateSplitTotal() {
+  const s = parseInt(document.getElementById('onboard-save-pct').value) || 0;
+  const sp = parseInt(document.getElementById('onboard-spend-pct').value) || 0;
+  const g = parseInt(document.getElementById('onboard-give-pct').value) || 0;
+  const total = s + sp + g;
+  const el = document.getElementById('split-total');
+  el.textContent = `Total: ${total}%`;
+  el.className = 'split-total' + (total !== 100 ? ' error' : '');
+}
+
+['onboard-save-pct','onboard-spend-pct','onboard-give-pct','onboard-emoji'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', () => {
+    if (id === 'onboard-emoji') {
+      document.getElementById('onboard-emoji-display').textContent = document.getElementById('onboard-emoji').value || '🌟';
+    }
+    updateSplitTotal();
+  });
+});
+
+function saveKid() {
+  const name = document.getElementById('onboard-name').value.trim();
+  const emoji = document.getElementById('onboard-emoji').value.trim() || '🌟';
+  const age = parseInt(document.getElementById('onboard-age').value) || 0;
+  const allowance = parseFloat(document.getElementById('onboard-allowance').value) || 0;
+  const savePct = parseInt(document.getElementById('onboard-save-pct').value) || 50;
+  const spendPct = parseInt(document.getElementById('onboard-spend-pct').value) || 40;
+  const givePct = parseInt(document.getElementById('onboard-give-pct').value) || 10;
+  const giveThreshold = parseFloat(document.getElementById('onboard-give-threshold').value) || 10;
+
+  if (!name) { showToast('Please enter a name'); return; }
+  if (savePct + spendPct + givePct !== 100) { showToast('Percentages must total 100%'); return; }
+
+  const editId = document.getElementById('onboard-name')._editId;
+  if (editId) {
+    const kid = getKid(editId);
+    if (kid) {
+      kid.name = name; kid.emoji = emoji; kid.age = age;
+      kid.allowance = allowance; kid.savePct = savePct;
+      kid.spendPct = spendPct; kid.givePct = givePct;
+      kid.giveThreshold = giveThreshold;
+    }
+    saveData(db);
+    showToast('Saved!');
+    showScreen('parent');
+  } else {
+    const kid = {
+      id: genId(), name, emoji, age, allowance,
+      savePct, spendPct, givePct,
+      giveThreshold,
+      jars: { save: 0, spend: 0, give: 0 },
+      wishes: [], ledger: [], snapshots: []
+    };
+    db.kids.push(kid);
+    saveData(db);
+    currentKidId = kid.id;
+    showScreen('kid');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// KID VIEW
+// ══════════════════════════════════════════════════════
+
+function renderKidView() {
+  const kid = getKid(currentKidId);
+  if (!kid) { showScreen('home'); return; }
+
+  document.getElementById('kid-view-name').textContent = kid.emoji + ' ' + kid.name;
+  document.getElementById('kid-save-bal').textContent = fmt(kid.jars.save);
+  document.getElementById('kid-spend-bal').textContent = fmt(kid.jars.spend);
+  document.getElementById('kid-give-bal').textContent = fmt(kid.jars.give);
+
+  // Give jar nudge
+  const nudgeBanner = document.getElementById('give-nudge-banner');
+  const threshold = kid.giveThreshold || GIVE_DEFAULT_THRESHOLD;
+  if (kid.jars.give >= threshold) {
+    nudgeBanner.style.display = '';
+    nudgeBanner.innerHTML = `
+      <div class="give-nudge">
+        <div class="give-nudge-emoji">🤲</div>
+        <div class="give-nudge-text">Your give jar has ${fmt(kid.jars.give)} — what do you want to do with it?</div>
+      </div>`;
+  } else {
+    nudgeBanner.style.display = 'none';
+  }
+
+  renderWishList(kid);
+}
+
+function renderWishList(kid) {
+  const wishes = activeWishes(kid).sort((a,b) => new Date(b.addedAt) - new Date(a.addedAt));
+  const list = document.getElementById('wish-list');
+  const empty = document.getElementById('wish-empty');
+
+  if (wishes.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = '';
+
+  wishes.forEach(wish => {
+    const days = daysSince(wish.addedAt);
+    const ageClass = days < 7 ? 'age-fresh' : days < 30 ? 'age-mid' : 'age-old';
+    const wa = weeksAway(wish.cost, kid.jars.save, kid.allowance, kid.savePct);
+    const lockDaysLeft = Math.max(0, LOCK_DAYS - days);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'wish-card-wrap';
+    wrap.dataset.wishId = wish.id;
+
+    const bgRight = document.createElement('div');
+    bgRight.className = 'wish-card-bg-right';
+    bgRight.textContent = '✓ Got it';
+    wrap.appendChild(bgRight);
+
+    const bgLeft = document.createElement('div');
+    bgLeft.className = 'wish-card-bg-left';
+    bgLeft.textContent = 'Skip →';
+    wrap.appendChild(bgLeft);
+
+    const card = document.createElement('div');
+    card.className = `wish-card ${ageClass}`;
+
+    let weeksHTML = '';
+    if (wa === null) {
+      weeksHTML = '';
+    } else if (wa === 0) {
+      weeksHTML = `<span class="wish-weeks funded">✓ Funded</span>`;
+    } else {
+      weeksHTML = `<span class="wish-weeks not-funded">${wa} week${wa !== 1 ? 's' : ''} away</span>`;
+    }
+
+    let lockHTML = '';
+    if (lockDaysLeft > 0 && days < LOCK_DAYS) {
+      const pct = (days / LOCK_DAYS) * 100;
+      lockHTML = `
+        <div class="wish-lock">
+          <span class="lock-icon">🔒</span>
+          <span class="wish-lock-text">unlocks in ${lockDaysLeft} day${lockDaysLeft !== 1 ? 's' : ''}</span>
+          <div class="wish-lock-bar-wrap"><div class="wish-lock-bar" style="width:${pct}%"></div></div>
+        </div>`;
+    }
+
+    card.innerHTML = `
+      <div class="wish-card-top">
+        <div class="wish-name">${escHtml(wish.name)}</div>
+        <div class="wish-cost${!wish.cost ? ' tap-to-add' : ''}" data-wish-id="${wish.id}">
+          ${wish.cost ? fmt(wish.cost) : 'add cost'}
+        </div>
+      </div>
+      <div class="wish-meta">
+        <span class="wish-age-badge">${ageBadge(days)}</span>
+        ${weeksHTML}
+        ${days >= 30 ? '<span class="wish-still-want">still want this?</span>' : ''}
+      </div>
+      ${lockHTML}
+    `;
+
+    card.querySelector('.wish-cost').addEventListener('click', e => {
+      e.stopPropagation();
+      openCostEditor(wish.id);
+    });
+
+    card.addEventListener('click', e => {
+      if (e._swiped) return;
+      openDetail(wish.id);
+    });
+
+    setupSwipe(card, wrap, bgRight, bgLeft, wish.id);
+
+    wrap.appendChild(card);
+    list.appendChild(wrap);
+  });
+}
+
+function setupSwipe(card, wrap, bgRight, bgLeft, wishId) {
+  let startX = 0, startY = 0, dx = 0, swiping = false, axis = null;
+  const THRESHOLD = 80;
+
+  function pointerDown(e) {
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX; startY = pt.clientY;
+    dx = 0; axis = null; swiping = true;
+    card.style.transition = 'none';
+  }
+
+  function pointerMove(e) {
+    if (!swiping) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const ddx = pt.clientX - startX;
+    const ddy = pt.clientY - startY;
+
+    if (!axis) {
+      if (Math.abs(ddx) > 5 || Math.abs(ddy) > 5) {
+        axis = Math.abs(ddx) > Math.abs(ddy) ? 'x' : 'y';
+      }
+    }
+
+    if (axis === 'x') {
+      e.preventDefault();
+      dx = ddx;
+      card.style.transform = `translateX(${dx}px)`;
+      if (dx > 0) {
+        bgRight.style.opacity = Math.min(dx / THRESHOLD, 1);
+        bgLeft.style.opacity = 0;
+      } else {
+        bgLeft.style.opacity = Math.min(-dx / THRESHOLD, 1);
+        bgRight.style.opacity = 0;
+      }
+    }
+  }
+
+  function pointerUp(e) {
+    if (!swiping) return;
+    swiping = false;
+    card.style.transition = 'transform 0.25s ease';
+
+    if (dx > THRESHOLD) {
+      card.style.transform = `translateX(${wrap.offsetWidth}px)`;
+      bgRight.style.opacity = 1;
+      e._swiped = true;
+      setTimeout(() => { pendingWishId = wishId; showScreen('gotit'); }, 220);
+    } else if (dx < -THRESHOLD) {
+      card.style.transform = `translateX(-${wrap.offsetWidth}px)`;
+      bgLeft.style.opacity = 1;
+      e._swiped = true;
+      setTimeout(() => { pendingWishId = wishId; showScreen('skip'); }, 220);
+    } else {
+      card.style.transform = 'translateX(0)';
+      bgRight.style.opacity = 0;
+      bgLeft.style.opacity = 0;
+    }
+  }
+
+  card.addEventListener('mousedown', pointerDown);
+  card.addEventListener('mousemove', pointerMove);
+  card.addEventListener('mouseup', pointerUp);
+  card.addEventListener('touchstart', pointerDown, { passive: true });
+  card.addEventListener('touchmove', pointerMove, { passive: false });
+  card.addEventListener('touchend', pointerUp);
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+// ── ADD WISH ──
+
+function openAddWish() {
+  document.getElementById('wish-name-input').value = '';
+  document.getElementById('wish-cost-input').value = '';
+  document.getElementById('add-wish-overlay').classList.add('open');
+  document.getElementById('add-wish-sheet').classList.add('open');
+  addWishOpen = true;
+  setTimeout(() => document.getElementById('wish-name-input').focus(), 300);
+}
+
+function closeAddWish() {
+  document.getElementById('add-wish-overlay').classList.remove('open');
+  document.getElementById('add-wish-sheet').classList.remove('open');
+  addWishOpen = false;
+}
+
+function saveWish() {
+  const name = document.getElementById('wish-name-input').value.trim();
+  if (!name) { showToast('Add a name first'); return; }
+  const cost = parseFloat(document.getElementById('wish-cost-input').value) || null;
+
+  const kid = getKid(currentKidId);
+  if (!kid) return;
+
+  const wish = {
+    id: genId(), name, cost,
+    addedAt: new Date().toISOString(),
+    status: 'active', statusAt: null, gotHow: null, giftFrom: null
+  };
+  kid.wishes.unshift(wish);
+  saveData(db);
+  closeAddWish();
+  renderKidView();
+  showToast('Wish added!');
+}
+
+function openCostEditor(wishId) {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === wishId);
+  if (!wish) return;
+  currentWishId = wishId;
+  const newCost = prompt('Enter cost:', wish.cost || '');
+  if (newCost === null) return;
+  wish.cost = parseFloat(newCost) || null;
+  saveData(db);
+  renderKidView();
+}
+
+// ── WISH DETAIL ──
+
+function openDetail(wishId) {
+  currentWishId = wishId;
+  showScreen('detail');
+}
+
+function renderDetail() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === currentWishId);
+  if (!wish) { showScreen('kid'); return; }
+
+  const days = daysSince(wish.addedAt);
+  const wa = weeksAway(wish.cost, kid.jars.save, kid.allowance, kid.savePct);
+
+  document.getElementById('detail-name').textContent = wish.name;
+  document.getElementById('detail-added').textContent = 'Added ' + new Date(wish.addedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('detail-cost').textContent = wish.cost ? fmt(wish.cost) : '—';
+  document.getElementById('detail-age').textContent = ageBadge(days);
+  document.getElementById('detail-save-bal').textContent = fmt(kid.jars.save);
+  document.getElementById('detail-weeks-away').textContent =
+    wa === null ? '—' : wa === 0 ? '✓ Funded' : wa + ' week' + (wa !== 1 ? 's' : '') + ' away';
+
+  document.getElementById('detail-name-input').value = wish.name;
+  document.getElementById('detail-cost-input').value = wish.cost || '';
+}
+
+function saveDetailEdits() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === currentWishId);
+  if (!wish) return;
+  const name = document.getElementById('detail-name-input').value.trim();
+  if (!name) { showToast('Name required'); return; }
+  wish.name = name;
+  wish.cost = parseFloat(document.getElementById('detail-cost-input').value) || null;
+  saveData(db);
+  showToast('Saved');
+  showScreen('kid');
+}
+
+function archiveWish() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === currentWishId);
+  if (!wish) return;
+  wish.status = 'archived';
+  wish.statusAt = new Date().toISOString();
+  saveData(db);
+  showScreen('kid');
+}
+
+// ── GOT IT FLOW ──
+
+function renderGotIt() {
+  gotItChoice = null;
+  document.getElementById('gotit-confirm-btn').disabled = true;
+  document.getElementById('gift-from-wrap').style.display = 'none';
+  document.getElementById('choice-own-money').classList.remove('selected');
+  document.getElementById('choice-gift').classList.remove('selected');
+  document.getElementById('gift-from-input').value = '';
+
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === pendingWishId);
+  if (!wish) { showScreen('kid'); return; }
+
+  document.getElementById('gotit-wish-name').textContent = wish.name;
+  document.getElementById('gotit-wish-cost').textContent = wish.cost ? fmt(wish.cost) : 'No price set';
+
+  const days = daysSince(wish.addedAt);
+  const locked = days < LOCK_DAYS;
+  const lockDaysLeft = LOCK_DAYS - days;
+
+  const ownEl = document.getElementById('choice-own-money');
+  const lockEl = document.getElementById('own-money-lock');
+
+  if (locked) {
+    ownEl.classList.add('locked');
+    lockEl.style.display = '';
+    const pct = (days / LOCK_DAYS) * 100;
+    document.getElementById('own-money-lock-text').textContent = `unlocks in ${lockDaysLeft} day${lockDaysLeft !== 1 ? 's' : ''}`;
+    document.getElementById('own-money-lock-bar').style.width = pct + '%';
+    ownEl.style.pointerEvents = 'none';
+    ownEl.style.opacity = '0.5';
+  } else {
+    ownEl.classList.remove('locked');
+    lockEl.style.display = 'none';
+    ownEl.style.pointerEvents = '';
+    ownEl.style.opacity = '';
+    const balance = kid.jars.save;
+    const cost = wish.cost || 0;
+    document.getElementById('own-money-sub').textContent =
+      balance >= cost ? `${fmt(cost)} deducted from ${fmt(balance)} save balance` : `Save balance is ${fmt(balance)}`;
+  }
+}
+
+function selectGotItChoice(choice) {
+  gotItChoice = choice;
+  document.getElementById('choice-own-money').classList.toggle('selected', choice === 'own');
+  document.getElementById('choice-gift').classList.toggle('selected', choice === 'gift');
+  document.getElementById('gift-from-wrap').style.display = choice === 'gift' ? '' : 'none';
+  document.getElementById('gotit-confirm-btn').disabled = false;
+}
+
+function confirmGotIt() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === pendingWishId);
+  if (!wish || !gotItChoice) return;
+
+  wish.status = 'got';
+  wish.statusAt = new Date().toISOString();
+  wish.gotHow = gotItChoice;
+
+  const days = daysSince(wish.addedAt);
+  let confirmMsg, confirmSub, confirmEmoji;
+
+  if (gotItChoice === 'own') {
+    const cost = wish.cost || 0;
+    kid.jars.save = Math.max(0, kid.jars.save - cost);
+    addLedgerEntry(kid, 'save', -cost, 'Got wish', wish.name);
+    takeSnapshot(kid);
+    const weeks = Math.floor(days / 7);
+    confirmEmoji = '⭐';
+    confirmMsg = `You saved ${weeks > 0 ? weeks + ' week' + (weeks !== 1 ? 's' : '') : 'for'} this.`;
+    confirmSub = 'Nice work.';
+  } else {
+    wish.giftFrom = document.getElementById('gift-from-input').value.trim() || null;
+    confirmEmoji = '🎁';
+    confirmMsg = 'Lucky you.';
+    confirmSub = wish.giftFrom ? `Thanks ${wish.giftFrom}!` : '';
+  }
+
+  saveData(db);
+  document.getElementById('confirm-emoji').textContent = confirmEmoji;
+  document.getElementById('confirm-msg').textContent = confirmMsg;
+  document.getElementById('confirm-sub').textContent = confirmSub;
+  showScreen('confirm');
+}
+
+// ── SKIP FLOW ──
+
+function renderSkip() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === pendingWishId);
+  if (!wish) { showScreen('kid'); return; }
+
+  const cost = wish.cost || 0;
+  document.getElementById('skip-freed').textContent =
+    cost ? `You skipped it. That's ${fmt(cost)} freed up.` : 'You skipped it.';
+
+  // Find top wish (oldest active wish with cost)
+  const topWish = activeWishes(kid)
+    .filter(w => w.id !== pendingWishId && w.cost)
+    .sort((a,b) => new Date(a.addedAt) - new Date(b.addedAt))[0];
+
+  const closerEl = document.getElementById('skip-closer');
+  if (topWish && cost) {
+    const wa = weeksAway(topWish.cost, kid.jars.save, kid.allowance, kid.savePct);
+    if (wa !== null) {
+      closerEl.style.display = '';
+      closerEl.textContent = `You're now ${wa} week${wa !== 1 ? 's' : ''} closer to ${topWish.name}.`;
+    } else {
+      closerEl.style.display = 'none';
+    }
+  } else {
+    closerEl.style.display = 'none';
+  }
+}
+
+function confirmSkip() {
+  const kid = getKid(currentKidId);
+  const wish = kid?.wishes.find(w => w.id === pendingWishId);
+  if (wish) {
+    wish.status = 'skipped';
+    wish.statusAt = new Date().toISOString();
+    saveData(db);
+  }
+  showScreen('kid');
+}
+
+// ══════════════════════════════════════════════════════
+// PARENT MODE
+// ══════════════════════════════════════════════════════
+
+function setParentTab(tab) {
+  parentTab = tab;
+  document.querySelectorAll('.parent-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.parent-tab').forEach(t => {
+    if (t.textContent.toLowerCase().replace(' ', '') === tab || t.getAttribute('onclick').includes(`'${tab}'`)) {
+      t.classList.add('active');
+    }
+  });
+  renderParent();
+}
+
+function renderParent() {
+  if (!parentKidId && db.kids.length > 0) parentKidId = db.kids[0].id;
+  const content = document.getElementById('parent-content');
+  content.innerHTML = '';
+
+  if (db.kids.length === 0) {
+    content.innerHTML = `<div style="text-align:center;color:rgba(255,255,255,0.4);padding:40px 0">No kids added yet.<br><br><button class="btn btn-primary" onclick="openOnboard(null)">Add a kid</button></div>`;
+    return;
+  }
+
+  // Kid selector
+  const kidSel = document.createElement('div');
+  kidSel.className = 'parent-kid-selector';
+  db.kids.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'parent-kid-btn' + (k.id === parentKidId ? ' active' : '');
+    btn.textContent = k.emoji + ' ' + k.name;
+    btn.onclick = () => { parentKidId = k.id; renderParent(); };
+    kidSel.appendChild(btn);
+  });
+  content.appendChild(kidSel);
+
+  const kid = getKid(parentKidId);
+  if (!kid) return;
+
+  if (parentTab === 'update') renderParentUpdate(content, kid);
+  if (parentTab === 'history') renderParentHistory(content, kid);
+  if (parentTab === 'trend') renderParentTrend(content, kid);
+  if (parentTab === 'wishes') renderParentWishes(content);
+}
+
+function renderParentUpdate(content, kid) {
+  // Jar balances
+  const jarsDiv = document.createElement('div');
+  jarsDiv.className = 'parent-jars';
+  ['save','spend','give'].forEach((jar, i) => {
+    const colors = ['#60A5FA','#34D399','#FB923C'];
+    const jd = document.createElement('div');
+    jd.className = 'parent-jar';
+    jd.innerHTML = `<div class="parent-jar-label">${jar}</div><div class="parent-jar-amount" style="color:${colors[i]}">${fmt(kid.jars[jar])}</div>`;
+    jarsDiv.appendChild(jd);
+  });
+  content.appendChild(jarsDiv);
+
+  // Update form
+  const form = document.createElement('div');
+  form.className = 'update-form';
+  form.innerHTML = `
+    <div class="input-group">
+      <label class="input-label">Type</label>
+      <select class="input" id="p-type">
+        <option value="allowance">Allowance (auto-split)</option>
+        <option value="chore">Chore bonus</option>
+        <option value="birthday">Birthday / holiday money</option>
+        <option value="spent">Spent (from spend jar)</option>
+        <option value="donated">Donated (from give jar)</option>
+        <option value="correction">Correction</option>
+      </select>
+    </div>
+    <div class="input-group" id="p-jar-group" style="display:none">
+      <label class="input-label">Jar</label>
+      <select class="input" id="p-jar">
+        <option value="save">Save</option>
+        <option value="spend">Spend</option>
+        <option value="give">Give</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Amount ($)</label>
+      <input type="number" class="input" id="p-amount" placeholder="0.00" min="0" step="0.01">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Note (optional)</label>
+      <input type="text" class="input" id="p-note" placeholder="e.g. cleaned the kitchen" maxlength="60">
+    </div>
+  `;
+  content.appendChild(form);
+
+  const typeEl = form.querySelector('#p-type');
+  const jarGroup = form.querySelector('#p-jar-group');
+  typeEl.addEventListener('change', () => {
+    const t = typeEl.value;
+    const showJar = ['chore','birthday','correction'].includes(t);
+    jarGroup.style.display = showJar ? '' : 'none';
+  });
+
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn btn-primary btn-full';
+  applyBtn.textContent = 'Apply update';
+  applyBtn.onclick = () => applyParentUpdate(kid);
+  content.appendChild(applyBtn);
+
+  const editKidBtn = document.createElement('button');
+  editKidBtn.className = 'btn btn-ghost btn-full mt-12';
+  editKidBtn.style.color = 'rgba(255,255,255,0.4)';
+  editKidBtn.style.borderColor = 'rgba(255,255,255,0.15)';
+  editKidBtn.textContent = 'Edit kid settings';
+  editKidBtn.onclick = () => openOnboard(kid.id);
+  content.appendChild(editKidBtn);
+}
+
+function applyParentUpdate(kid) {
+  const type = document.getElementById('p-type').value;
+  const amount = parseFloat(document.getElementById('p-amount').value) || 0;
+  const note = document.getElementById('p-note').value.trim();
+  const jar = document.getElementById('p-jar')?.value || 'save';
+
+  if (!amount) { showToast('Enter an amount'); return; }
+
+  const now = new Date().toISOString();
+
+  if (type === 'allowance') {
+    const saveAmt = amount * (kid.savePct / 100);
+    const spendAmt = amount * (kid.spendPct / 100);
+    const giveAmt = amount - saveAmt - spendAmt;
+    kid.jars.save += saveAmt;
+    kid.jars.spend += spendAmt;
+    kid.jars.give += giveAmt;
+    addLedgerEntry(kid, 'all', amount, 'Allowance', note);
+  } else if (type === 'chore') {
+    kid.jars[jar] += amount;
+    addLedgerEntry(kid, jar, amount, 'Chore bonus', note);
+  } else if (type === 'birthday') {
+    kid.jars[jar] += amount;
+    addLedgerEntry(kid, jar, amount, 'Gift money', note);
+  } else if (type === 'spent') {
+    kid.jars.spend = Math.max(0, kid.jars.spend - amount);
+    addLedgerEntry(kid, 'spend', -amount, 'Spent', note);
+  } else if (type === 'donated') {
+    kid.jars.give = Math.max(0, kid.jars.give - amount);
+    addLedgerEntry(kid, 'give', -amount, 'Donated', note);
+  } else if (type === 'correction') {
+    kid.jars[jar] += amount;
+    addLedgerEntry(kid, jar, amount, 'Correction', note);
+  }
+
+  takeSnapshot(kid);
+  saveData(db);
+
+  document.getElementById('p-amount').value = '';
+  document.getElementById('p-note').value = '';
+  showToast('Updated!');
+  renderParent();
+}
+
+function addLedgerEntry(kid, jar, amount, reason, note) {
+  if (!kid.ledger) kid.ledger = [];
+  kid.ledger.unshift({
+    date: new Date().toISOString(),
+    jar, amount, reason, note: note || ''
+  });
+  if (kid.ledger.length > 200) kid.ledger = kid.ledger.slice(0, 200);
+}
+
+function renderParentHistory(content, kid) {
+  const ledger = (kid.ledger || []).slice(0, 50);
+  if (!ledger.length) {
+    content.innerHTML += `<div style="color:rgba(255,255,255,0.3);text-align:center;padding:24px">No history yet</div>`;
+    return;
+  }
+
+  const jarEmoji = { save: '💙', spend: '💚', give: '🧡', all: '💰' };
+
+  ledger.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'ledger-item';
+    const d = new Date(entry.date);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const isPos = entry.amount >= 0;
+    item.innerHTML = `
+      <div class="ledger-icon">${jarEmoji[entry.jar] || '💰'}</div>
+      <div class="ledger-info">
+        <div class="ledger-reason">${escHtml(entry.reason)}${entry.note ? ' — ' + escHtml(entry.note) : ''}</div>
+        <div class="ledger-meta">${dateStr} · ${timeStr} · ${entry.jar === 'all' ? 'all jars' : entry.jar + ' jar'}</div>
+      </div>
+      <div class="ledger-amount ${isPos ? 'pos' : 'neg'}">${fmtSigned(entry.amount)}</div>
+    `;
+    content.appendChild(item);
+  });
+}
+
+function renderParentTrend(content, kid) {
+  const snapshots = (kid.snapshots || []).slice(-30);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'sparkline-wrap';
+  wrap.innerHTML = `<div class="sparkline-label">${kid.name}'s save balance — last ${snapshots.length} updates</div>`;
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'sparkline-canvas';
+  canvas.style.width = '100%';
+  canvas.style.height = '80px';
+  wrap.appendChild(canvas);
+  content.appendChild(wrap);
+
+  if (snapshots.length < 2) {
+    wrap.innerHTML += `<div style="color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding:8px 0">Not enough data yet</div>`;
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = 80 * devicePixelRatio;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    const values = snapshots.map(s => s.save);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const W = rect.width, H = 80, pad = 8;
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#1A6BF0';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    values.forEach((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+      const y = H - pad - ((v - min) / range) * (H - pad * 2);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Fill
+    ctx.lineTo(pad + ((values.length - 1) / (values.length - 1)) * (W - pad * 2), H - pad);
+    ctx.lineTo(pad, H - pad);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(26,107,240,0.15)';
+    ctx.fill();
+  });
+
+  // Show both kids' snapshot dates
+  const infoDiv = document.createElement('div');
+  infoDiv.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.3);margin-top:8px';
+  const first = snapshots[0];
+  const last = snapshots[snapshots.length-1];
+  if (first && last) {
+    infoDiv.textContent = new Date(first.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) +
+      ' → ' + new Date(last.date).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  }
+  wrap.appendChild(infoDiv);
+
+  // Current balances summary
+  const summaryDiv = document.createElement('div');
+  summaryDiv.className = 'parent-jars';
+  ['save','spend','give'].forEach((jar, i) => {
+    const colors = ['#60A5FA','#34D399','#FB923C'];
+    const jd = document.createElement('div');
+    jd.className = 'parent-jar';
+    jd.innerHTML = `<div class="parent-jar-label">${jar}</div><div class="parent-jar-amount" style="color:${colors[i]}">${fmt(kid.jars[jar])}</div>`;
+    summaryDiv.appendChild(jd);
+  });
+  content.appendChild(summaryDiv);
+}
+
+let shareFilter = 'all';
+
+function renderParentWishes(content) {
+  // Filter bar
+  const filterDiv = document.createElement('div');
+  filterDiv.className = 'share-filter';
+  [['all','All'],['7','7+ days'],['30','30+ days']].forEach(([val, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (shareFilter === val ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => { shareFilter = val; renderParent(); };
+    filterDiv.appendChild(btn);
+  });
+  content.appendChild(filterDiv);
+
+  // Share button
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'btn btn-ghost btn-sm';
+  shareBtn.style.cssText = 'color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.25);margin-bottom:16px';
+  shareBtn.textContent = '📋 Copy wish list';
+  shareBtn.onclick = () => copyWishList();
+  content.appendChild(shareBtn);
+
+  db.kids.forEach(kid => {
+    const kidHeader = document.createElement('div');
+    kidHeader.style.cssText = 'font-size:15px;font-weight:700;color:rgba(255,255,255,0.7);margin:16px 0 8px';
+    kidHeader.textContent = kid.emoji + ' ' + kid.name;
+    content.appendChild(kidHeader);
+
+    const wishes = activeWishes(kid)
+      .filter(w => {
+        const days = daysSince(w.addedAt);
+        if (shareFilter === '7') return days >= 7;
+        if (shareFilter === '30') return days >= 30;
+        return true;
+      })
+      .sort((a,b) => new Date(a.addedAt) - new Date(b.addedAt));
+
+    if (!wishes.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'color:rgba(255,255,255,0.25);font-size:14px;padding:8px 0';
+      empty.textContent = 'No wishes in this filter';
+      content.appendChild(empty);
+      return;
+    }
+
+    wishes.forEach(w => {
+      const days = daysSince(w.addedAt);
+      const item = document.createElement('div');
+      item.className = 'share-wish-item';
+      item.innerHTML = `
+        <div class="share-wish-name">${escHtml(w.name)}</div>
+        <div class="share-wish-meta">${ageBadge(days)} on list</div>
+      `;
+      content.appendChild(item);
+    });
+  });
+}
+
+function copyWishList() {
+  const lines = [];
+  db.kids.forEach(kid => {
+    const wishes = activeWishes(kid)
+      .filter(w => daysSince(w.addedAt) >= 30)
+      .sort((a,b) => new Date(a.addedAt) - new Date(b.addedAt));
+    if (!wishes.length) return;
+    lines.push(kid.name + "'s Wish List");
+    wishes.forEach(w => lines.push('• ' + w.name + (w.addedAt ? ' (' + ageBadge(daysSince(w.addedAt)) + ' on list)' : '')));
+    lines.push('');
+  });
+
+  if (!lines.length) { showToast('No wishes 30+ days old yet'); return; }
+
+  const text = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied!');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+
+// Kick off
+showScreen('home');
+</script>
+</body>
+</html>
